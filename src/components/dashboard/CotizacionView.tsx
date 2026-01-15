@@ -13,7 +13,15 @@ import { useToast } from "@/hooks/use-toast";
 import { CotizacionItemPDF, DatosClientePDF } from "./CotizacionPDF";
 import { downloadCotizacionAsPDF } from "./cotizacionPdfUtils";
 import { getProductos, searchProductos, createCotizacion, getCotizaciones, getCotizacionById, deleteCotizacion, searchCotizaciones, Producto, Variante, CotizacionRequest, Cotizacion, DetalleCotizacion } from "@/api/CotizacionApi";
-
+const WhatsappIcon = ({ className = "w-4 h-4" }) => (
+  <svg 
+    className={className} 
+    viewBox="0 0 24 24" 
+    fill="currentColor"
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.189-1.248-6.189-3.515-8.464"/>
+  </svg>
+);
 // Hook personalizado para debounce
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -665,354 +673,371 @@ const buscarCotizacionesPorCliente = async (query?: string) => {
   };
 
   if (cotizacionGenerada) {
-    const fechaHoy = new Date().toLocaleDateString('es-BO');
-    const fechaVigencia = new Date();
-    fechaVigencia.setDate(fechaVigencia.getDate() + datosCliente.vigencia);
+  const fechaHoy = new Date().toLocaleDateString('es-BO');
+  const fechaVigencia = new Date();
+  fechaVigencia.setDate(fechaVigencia.getDate() + datosCliente.vigencia);
 
-    return (
-      <div className="space-y-6 p-4">
-        {/* Alert Modal */}
-        <AlertModal />
-        
-        {/* Área de impresión (oculta en vista normal) */}
-        <div id="cotizacion-print" className="hidden">
-          <div className="p-6">
-            {/* Logo */}
-            <div className="text-center mb-6">
-              <img 
-                src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
-                alt="NEOLED Logo" 
-                className="h-20 mx-auto mb-4"
-                onError={(e) => {
-                  e.currentTarget.src = "https://via.placeholder.com/160x80/f3f4f6/000000?text=NEOLED+Logo";
-                }}
-              />
-              <h1 className="text-2xl font-bold">COTIZACIÓN</h1>
-            </div>
-
-            {/* Información del cliente */}
-            <div className="mb-6 grid grid-cols-2 gap-4">
-              <div>
-                <p><strong>Fecha:</strong> {fechaHoy}</p>
-                <p><strong>Cliente:</strong> {datosCliente.nombre}</p>
-                <p><strong>Teléfono:</strong> {datosCliente.telefono}</p>
-              </div>
-              <div>
-                <p><strong>Dirección:</strong> {datosCliente.direccion}</p>
-                <p><strong>Tipo de Pago:</strong> 
-                  {datosCliente.tipoPago === "contra-entrega" && " Contra Entrega"}
-                  {datosCliente.tipoPago === "pago-adelantado" && " Pago por Adelantado"}
-                  {datosCliente.tipoPago === "mitad-adelanto" && " Mitad de Adelanto"}
-                </p>
-                <p><strong>Vigencia:</strong> {datosCliente.vigencia} días (hasta {fechaVigencia.toLocaleDateString('es-BO')})</p>
-              </div>
-            </div>
-
-            {/* Tabla de productos */}
-            <table className="w-full border-collapse border border-gray-300 mb-6">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border border-gray-300 p-2 text-left">Descripción</th>
-                  <th className="border border-gray-300 p-2 text-center">Cantidad</th>
-                  <th className="border border-gray-300 p-2 text-right">Precio Unitario</th>
-                  <th className="border border-gray-300 p-2 text-right">Valor Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cotizacionItems.map((item, index) => (
-                  <tr key={index}>
-                    <td className="border border-gray-300 p-2">
-                      <div>
-                        <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.productoDescripcion}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="border border-gray-300 p-2 text-center">{item.cantidad}</td>
-                    <td className="border border-gray-300 p-2 text-right">Bs {formatBs(item.precio_venta)}</td>
-                    <td className="border border-gray-300 p-2 text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Resumen de pagos */}
-            <div className="float-right w-80 border border-gray-300 p-4">
-              <h3 className="text-lg font-bold mb-3 border-b pb-2">Resumen de Pagos</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>Bs {formatBs(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-red-600">
-                  <span>Descuento Total:</span>
-                  <span>-Bs {formatBs(descuentoTotal)}</span>
-                </div>
-                <div className="flex justify-between border-t pt-2 font-bold">
-                  <span>Total:</span>
-                  <span>Bs {formatBs(totalFinal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Abono:</span>
-                  <span className="font-bold">Bs {formatBs(abono)}</span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span>Saldo:</span>
-                  <span className="font-bold">Bs {formatBs(saldo)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="clear-both mt-32 pt-6 border-t border-gray-300">
-              <p className="text-center text-sm text-gray-600">
-                Gracias por su preferencia - NEOLED
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
-          <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            Cotización Generada
-          </h1>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button onClick={handleDownloadPDF} className="bg-green-600 text-white flex items-center gap-2 w-full sm:w-auto justify-center">
-              <FileText className="h-4 w-4" />
-              Descargar PDF
-            </Button>
-            <Button onClick={nuevaCotizacion} variant="outline" className="w-full sm:w-auto">
-              Nueva Cotización
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-6">
+  return (
+    <div className="space-y-6 p-4">
+      {/* Alert Modal */}
+      <AlertModal />
+      
+      {/* Área de impresión (oculta en vista normal) */}
+      <div id="cotizacion-print" className="hidden">
+        <div className="p-6">
           {/* Logo */}
           <div className="text-center mb-6">
             <img 
               src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
               alt="NEOLED Logo" 
-              className="h-16 mx-auto mb-4"
+              className="h-20 mx-auto mb-4"
+              onError={(e) => {
+                e.currentTarget.src = "https://via.placeholder.com/160x80/f3f4f6/000000?text=NEOLED+Logo";
+              }}
+            />
+            <h1 className="text-2xl font-bold">COTIZACIÓN</h1>
+          </div>
+
+          {/* Información del cliente */}
+          <div className="mb-6 grid grid-cols-2 gap-4">
+            <div>
+              <p><strong>Fecha:</strong> {fechaHoy}</p>
+              <p><strong>Cliente:</strong> {datosCliente.nombre}</p>
+              <p><strong>Teléfono:</strong> {datosCliente.telefono}</p>
+            </div>
+            <div>
+              <p><strong>Dirección:</strong> {datosCliente.direccion}</p>
+              <p><strong>Tipo de Pago:</strong> 
+                {datosCliente.tipoPago === "contra-entrega" && " Contra Entrega"}
+                {datosCliente.tipoPago === "pago-adelantado" && " Pago por Adelantado"}
+                {datosCliente.tipoPago === "mitad-adelanto" && " Mitad de Adelanto"}
+              </p>
+              <p><strong>Vigencia:</strong> {datosCliente.vigencia} días (hasta {fechaVigencia.toLocaleDateString('es-BO')})</p>
+            </div>
+          </div>
+
+          {/* Tabla de productos */}
+          <table className="w-full border-collapse border border-gray-300 mb-6">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 p-2 text-left">Descripción</th>
+                <th className="border border-gray-300 p-2 text-center">Cantidad</th>
+                <th className="border border-gray-300 p-2 text-right">Precio Unitario</th>
+                <th className="border border-gray-300 p-2 text-right">Valor Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cotizacionItems.map((item, index) => (
+                <tr key={index}>
+                  <td className="border border-gray-300 p-2">
+                    <div>
+                      <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.productoDescripcion}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="border border-gray-300 p-2 text-center">{item.cantidad}</td>
+                  <td className="border border-gray-300 p-2 text-right">Bs {formatBs(item.precio_venta)}</td>
+                  <td className="border border-gray-300 p-2 text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Resumen de pagos */}
+          <div className="float-right w-80 border border-gray-300 p-4">
+            <h3 className="text-lg font-bold mb-3 border-b pb-2">Resumen de Pagos</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>Bs {formatBs(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-red-600">
+                <span>Descuento Total:</span>
+                <span>-Bs {formatBs(descuentoTotal)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 font-bold">
+                <span>Total:</span>
+                <span>Bs {formatBs(totalFinal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Abono:</span>
+                <span className="font-bold">Bs {formatBs(abono)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2">
+                <span>Saldo:</span>
+                <span className="font-bold">Bs {formatBs(saldo)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="clear-both mt-32 pt-6 border-t border-gray-300">
+            <p className="text-center text-sm text-gray-600">
+              Gracias por su preferencia - NEOLED
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
+        <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
+          <FileText className="h-6 w-6" />
+          Cotización Generada
+        </h1>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button onClick={handleDownloadPDF} className="bg-green-600 text-white flex items-center gap-2 w-full sm:w-auto justify-center">
+            <FileText className="h-4 w-4" />
+            Descargar PDF
+          </Button>
+          <Button onClick={nuevaCotizacion} variant="outline" className="w-full sm:w-auto">
+            Nueva Cotización
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Cabecera con imagen centrada y información */}
+        <div className="space-y-4">
+          {/* Imagen centrada */}
+          <div className="text-center">
+            <img 
+              src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
+              alt="NEOLED Logo" 
+              className="h-16 mx-auto"
               onError={(e) => {
                 e.currentTarget.src = "https://via.placeholder.com/128x64/f3f4f6/000000?text=NEOLED+Logo";
               }}
             />
           </div>
 
-          {/* Título de Productos Cotizados */}
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold text-foreground">Productos Cotizados</h2>
+          {/* Información de contacto centrada */}
+          <div className="text-center space-y-1">
+            <p className="text-sm text-gray-800 font-medium">
+              Av. Heroinas esq. Hamiraya #316
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              {/* Icono de WhatsApp */}
+              <WhatsappIcon className="w-5 h-5 text-green-600" />
+              <span className="text-sm text-gray-800 font-medium">
+                77918672 - 77950297
+              </span>
+            </div>
           </div>
+        </div>
 
-          {/* Vista responsiva para móviles */}
-          <div className="block md:hidden space-y-4">
-            {/* Información del cliente para móviles */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Información del Cliente</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="font-medium">Fecha:</span>
-                    <p>{fechaHoy}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Cliente:</span>
-                    <p>{datosCliente.nombre}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Teléfono:</span>
-                    <p>{datosCliente.telefono}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Dirección:</span>
-                    <p className="truncate">{datosCliente.direccion}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Tipo de Pago:</span>
-                    <p>
-                      {datosCliente.tipoPago === "contra-entrega" && "Contra Entrega"}
-                      {datosCliente.tipoPago === "pago-adelantado" && "Pago por Adelantado"}
-                      {datosCliente.tipoPago === "mitad-adelanto" && "Mitad de Adelanto"}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Vigencia:</span>
-                    <p>{datosCliente.vigencia} días</p>
-                  </div>
+        {/* Título "Productos Cotizados" a la izquierda */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground">Productos Cotizados</h2>
+        </div>
+
+        {/* Vista responsiva para móviles */}
+        <div className="block md:hidden space-y-4">
+          {/* Información del cliente para móviles */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Información del Cliente</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="font-medium">Fecha:</span>
+                  <p>{fechaHoy}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Productos para móviles */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Productos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {cotizacionItems.map((item, index) => (
-                  <div key={index} className="border rounded-lg p-3 space-y-2">
-                    <div>
-                      <h4 className="font-semibold text-sm">{item.productoNombre} - {item.color_disenio}</h4>
-                      <p className="text-xs text-muted-foreground">{item.productoDescripcion}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="font-medium">Cantidad:</span>
-                        <p>{item.cantidad}</p>
-                      </div>
-                      <div>
-                        <span className="font-medium">Precio Unitario:</span>
-                        <p>Bs {formatBs(item.precio_venta)}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="font-medium">Valor Total:</span>
-                        <p className="font-bold">Bs {formatBs(item.precio_venta * item.cantidad)}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Resumen de pagos para móviles */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Resumen de Pagos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Subtotal:</span>
-                    <span className="text-sm">Bs {formatBs(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Descuento:</span>
-                    <span className="text-sm text-red-600">-Bs {formatBs(descuentoTotal)}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="font-bold">Total:</span>
-                    <span className="font-bold text-primary">Bs {formatBs(totalFinal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Abono:</span>
-                    <span className="text-sm font-bold text-green-600">Bs {formatBs(abono)}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-2">
-                    <span className="font-medium">Saldo:</span>
-                    <span className="font-bold text-orange-600">Bs {formatBs(saldo)}</span>
-                  </div>
+                <div>
+                  <span className="font-medium">Cliente:</span>
+                  <p>{datosCliente.nombre}</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Vista para desktop */}
-          <div className="hidden md:block space-y-6">
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Teléfono</TableHead>
-                        <TableHead>Dirección</TableHead>
-                        <TableHead>Tipo de Pago</TableHead>
-                        <TableHead>Vigencia</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell>{fechaHoy}</TableCell>
-                        <TableCell>{datosCliente.nombre}</TableCell>
-                        <TableCell>{datosCliente.telefono}</TableCell>
-                        <TableCell className="max-w-xs truncate">{datosCliente.direccion}</TableCell>
-                        <TableCell>
-                          {datosCliente.tipoPago === "contra-entrega" && "Contra Entrega"}
-                          {datosCliente.tipoPago === "pago-adelantado" && "Pago por Adelantado"}
-                          {datosCliente.tipoPago === "mitad-adelanto" && "Mitad de Adelanto"}
-                        </TableCell>
-                        <TableCell>{datosCliente.vigencia} días (hasta {fechaVigencia.toLocaleDateString('es-BO')})</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead colSpan={3}>Descripción</TableHead>
-                        <TableHead className="text-center">Cantidad</TableHead>
-                        <TableHead className="text-right">Valor Unitario</TableHead>
-                        <TableHead className="text-right">Valor Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cotizacionItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell colSpan={3}>
-                            <div>
-                              <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {item.productoDescripcion}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">{item.cantidad}</TableCell>
-                          <TableCell className="text-right">Bs {formatBs(item.precio_venta)}</TableCell>
-                          <TableCell className="text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div>
+                  <span className="font-medium">Teléfono:</span>
+                  <p>{datosCliente.telefono}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Resumen de Pagos debajo de la tabla */}
-            <div className="flex justify-end">
-              <div className="w-80">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Resumen de Pagos</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Subtotal:</span>
-                        <span className="font-medium">Bs {formatBs(subtotal)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Descuento Total:</span>
-                        <span className="font-medium text-red-600">-Bs {formatBs(descuentoTotal)}</span>
-                      </div>
-                      <hr />
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold">Total:</span>
-                        <span className="text-lg font-bold text-primary">Bs {formatBs(totalFinal)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Abono:</span>
-                        <span className="font-bold text-green-600">Bs {formatBs(abono)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Saldo:</span>
-                        <span className="font-bold text-orange-600">Bs {formatBs(saldo)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div>
+                  <span className="font-medium">Dirección:</span>
+                  <p className="truncate">{datosCliente.direccion}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Tipo de Pago:</span>
+                  <p>
+                    {datosCliente.tipoPago === "contra-entrega" && "Contra Entrega"}
+                    {datosCliente.tipoPago === "pago-adelantado" && "Pago por Adelantado"}
+                    {datosCliente.tipoPago === "mitad-adelanto" && "Mitad de Adelanto"}
+                  </p>
+                </div>
+                <div>
+                  <span className="font-medium">Vigencia:</span>
+                  <p>{datosCliente.vigencia} días</p>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Productos para móviles */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Productos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {cotizacionItems.map((item, index) => (
+                <div key={index} className="border rounded-lg p-3 space-y-2">
+                  <div>
+                    <h4 className="font-semibold text-sm">{item.productoNombre} - {item.color_disenio}</h4>
+                    <p className="text-xs text-muted-foreground">{item.productoDescripcion}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">Cantidad:</span>
+                      <p>{item.cantidad}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Precio Unitario:</span>
+                      <p>Bs {formatBs(item.precio_venta)}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="font-medium">Valor Total:</span>
+                      <p className="font-bold">Bs {formatBs(item.precio_venta * item.cantidad)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Resumen de pagos para móviles */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Resumen de Pagos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">Subtotal:</span>
+                  <span className="text-sm">Bs {formatBs(subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Descuento:</span>
+                  <span className="text-sm text-red-600">-Bs {formatBs(descuentoTotal)}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="font-bold">Total:</span>
+                  <span className="font-bold text-primary">Bs {formatBs(totalFinal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Abono:</span>
+                  <span className="text-sm font-bold text-green-600">Bs {formatBs(abono)}</span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="font-medium">Saldo:</span>
+                  <span className="font-bold text-orange-600">Bs {formatBs(saldo)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Vista para desktop */}
+        <div className="hidden md:block space-y-6">
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Teléfono</TableHead>
+                      <TableHead>Dirección</TableHead>
+                      <TableHead>Tipo de Pago</TableHead>
+                      <TableHead>Vigencia</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>{fechaHoy}</TableCell>
+                      <TableCell>{datosCliente.nombre}</TableCell>
+                      <TableCell>{datosCliente.telefono}</TableCell>
+                      <TableCell className="max-w-xs truncate">{datosCliente.direccion}</TableCell>
+                      <TableCell>
+                        {datosCliente.tipoPago === "contra-entrega" && "Contra Entrega"}
+                        {datosCliente.tipoPago === "pago-adelantado" && "Pago por Adelantado"}
+                        {datosCliente.tipoPago === "mitad-adelanto" && "Mitad de Adelanto"}
+                      </TableCell>
+                      <TableCell>{datosCliente.vigencia} días (hasta {fechaVigencia.toLocaleDateString('es-BO')})</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead colSpan={3}>Descripción</TableHead>
+                      <TableHead className="text-center">Cantidad</TableHead>
+                      <TableHead className="text-right">Valor Unitario</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {cotizacionItems.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell colSpan={3}>
+                          <div>
+                            <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.productoDescripcion}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">{item.cantidad}</TableCell>
+                        <TableCell className="text-right">Bs {formatBs(item.precio_venta)}</TableCell>
+                        <TableCell className="text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Resumen de Pagos debajo de la tabla */}
+          <div className="flex justify-end">
+            <div className="w-80">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Resumen de Pagos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Subtotal:</span>
+                      <span className="font-medium">Bs {formatBs(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Descuento Total:</span>
+                      <span className="font-medium text-red-600">-Bs {formatBs(descuentoTotal)}</span>
+                    </div>
+                    <hr />
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-bold">Total:</span>
+                      <span className="text-lg font-bold text-primary">Bs {formatBs(totalFinal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Abono:</span>
+                      <span className="font-bold text-green-600">Bs {formatBs(abono)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Saldo:</span>
+                      <span className="font-bold text-orange-600">Bs {formatBs(saldo)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="space-y-6 p-4">

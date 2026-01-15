@@ -38,6 +38,15 @@ export interface GeneratePDFParams {
 }
 
 /**
+ * SVG del icono de WhatsApp - CORREGIDO para html2canvas
+ */
+const WhatsappIconSVG = ({ className = "whatsapp-svg", color = "#25D366" }) => `
+  <svg class="${className}" viewBox="0 0 24 24" fill="${color}" style="display: block; flex-shrink: 0; transform: translateY(2px);">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.189-1.248-6.189-3.515-8.464"/>
+  </svg>
+`;
+
+/**
  * generateCotizacionPDF
  * - Crea un HTML offscreen que replica el layout de la imagen y lo renderiza a PDF.
  * - Retorna una Promise que se resuelve tras descargar el PDF.
@@ -100,6 +109,18 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     .small { font-size: 12px; color: #0f3b43; }
     .product-name { font-weight: 600; color: #0f3b43; margin:0 0 6px; }
     .product-meta { font-size: 12px; color:#6b7880; margin:0; }
+    
+    /* Nuevos estilos para la cabecera */
+    .cabecera-cotizacion { text-align: center; margin-bottom: 24px; }
+    .logo-cabecera { height: 64px; object-fit: contain; display: block; margin: 0 auto 12px; }
+    .info-contacto { text-align: center; margin-bottom: 16px; }
+    .direccion { font-size: 13px; color: #000; font-weight: 500; margin-bottom: 8px; }
+    .whatsapp-info { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; }
+    .whatsapp-svg { width: 18px; height: 18px; display: block; flex-shrink: 0; position: relative; z-index: 1; }
+    .telefonos { font-size: 13px; color: #000; font-weight: 500; line-height: 1; position: relative; }
+    .no-plomo { font-size: 14px; color: #000; font-weight: bold; margin-top: 4px; }
+    .titulo-productos { font-size: 18px; font-weight: 700; color: #0f5560; margin: 0; text-align: left; }
+    
     @media print {
       .btn-print { display: none; }
     }
@@ -149,15 +170,37 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     </div>
   `;
 
+  // 4) Construir el resumen de pagos - SOLO mostrar descuento si es mayor a 0
+  let descuentoHTML = '';
+  if (descuentoTotal > 0) {
+    descuentoHTML = `
+      <div class="summary-row"><span class="small">Descuento Total:</span><span class="small" style="color:#d33c3c;">-Bs ${formatNumber(descuentoTotal)}</span></div>
+    `;
+  }
+
   const rightHTML = `
     <div class="summary">
       <div class="title">Resumen de Pagos</div>
       <div class="summary-row"><span class="small">Subtotal:</span><span class="small">Bs ${formatNumber(subtotal)}</span></div>
-      <div class="summary-row"><span class="small">Descuento Total:</span><span class="small" style="color:#d33c3c;">-Bs ${formatNumber(descuentoTotal)}</span></div>
+      ${descuentoHTML}
       <hr style="border:none;border-top:1px solid #e6edf0;margin:8px 0;">
       <div class="summary-row"><span class="small">Total:</span><span class="total">Bs ${formatNumber(totalFinal)}</span></div>
-      <div class="summary-row"><span class="small">Abono:</span><span class="abono">Bs ${formatNumber(calculateAbono(datosCliente.tipoPago, totalFinal))}</span></div>
-      <div class="summary-row"><span class="small">Saldo:</span><span class="saldo">Bs ${formatNumber(calculateSaldo(datosCliente.tipoPago, totalFinal))}</span></div>
+      <div class="summary-row"><span class="small">Abono:</span><span class="abono">Bs ${formatNumber(0)}</span></div>
+      <div class="summary-row"><span class="small">Saldo:</span><span class="saldo">Bs ${formatNumber(totalFinal)}</span></div>
+    </div>
+  `;
+
+  // 5) Construir la cabecera con logo e información de contacto - ESTRUCTURA CORREGIDA
+  const cabeceraHTML = `
+    <div class="cabecera-cotizacion">
+      <img src="${logoUrl}" class="logo-cabecera" alt="NEOLED Logo" />
+      <div class="info-contacto">
+        <p class="direccion">Av. Heroinas esq. Hamiraya #316</p>
+        <div class="whatsapp-info">
+          ${WhatsappIconSVG({ className: "whatsapp-svg", color: "#25D366" })}
+          <span class="telefonos">77918672 - 77950297</span>
+        </div>
+      </div>
     </div>
   `;
 
@@ -165,13 +208,11 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
 
   wrapper.innerHTML += `
     <div class="pdf-container">
-      <div class="header">
-        <img src="${logoUrl}" class="logo" alt="Logo" />
-      </div>
-
+      ${cabeceraHTML}
+      
       <div style="display:flex; align-items:flex-start; gap: 16px;">
         <div style="flex:1;">
-          <h2 class="title">Productos Cotizados</h2>
+          <h2 class="titulo-productos">Productos Cotizados</h2>
         </div>
         <div style="width:320px;"></div>
       </div>
@@ -189,7 +230,7 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
 
   document.body.appendChild(wrapper);
 
-  // 4) Renderizar a canvas con html2canvas
+  // 6) Renderizar a canvas con html2canvas
   try {
     // html2canvas opciones para mejor calidad
     const node = wrapper;
@@ -203,7 +244,7 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
       windowHeight: node.scrollHeight
     });
 
-    // 5) Pasar a jsPDF
+    // 7) Pasar a jsPDF
     const imgData = canvas.toDataURL("image/png");
     // Tamaño de A4 en pt: 595.28 x 841.89 (portrait). Usamos landscape para que quepa mejor.
     const pdf = new jsPDF({
@@ -277,32 +318,4 @@ function itemRowHtml(item: CotizacionItemPDF) {
       <td class="total">Bs ${formatNumber(total)}</td>
     </tr>
   `;
-}
-
-function calculateAbono(tipo: DatosClientePDF["tipoPago"] | undefined, total: number) {
-  if (!tipo) return 0;
-  switch (tipo) {
-    case "pago-adelantado":
-      return total;
-    case "mitad-adelanto":
-      return total / 2;
-    case "contra-entrega":
-      return 0;
-    default:
-      return 0;
-  }
-}
-
-function calculateSaldo(tipo: DatosClientePDF["tipoPago"] | undefined, total: number) {
-  if (!tipo) return 0;
-  switch (tipo) {
-    case "pago-adelantado":
-      return 0;
-    case "mitad-adelanto":
-      return total / 2;
-    case "contra-entrega":
-      return total;
-    default:
-      return 0;
-  }
 }
