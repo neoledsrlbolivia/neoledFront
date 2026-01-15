@@ -941,34 +941,6 @@ const buscarCotizacionesPorCliente = async (query?: string) => {
                       </TableRow>
                     </TableBody>
                   </Table>
-
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead colSpan={3}>Descripción</TableHead>
-                        <TableHead className="text-center">Cantidad</TableHead>
-                        <TableHead className="text-right">Valor Unitario</TableHead>
-                        <TableHead className="text-right">Valor Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cotizacionItems.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell colSpan={3}>
-                            <div>
-                              <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {item.productoDescripcion}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">{item.cantidad}</TableCell>
-                          <TableCell className="text-right">Bs {formatBs(item.precio_venta)}</TableCell>
-                          <TableCell className="text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
                 </div>
               </CardContent>
             </Card>
