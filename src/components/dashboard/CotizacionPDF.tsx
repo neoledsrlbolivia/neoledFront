@@ -264,12 +264,53 @@ function formatTipoPago(tp?: string) {
 
 function itemRowHtml(item: CotizacionItemPDF) {
   const total = (item.price || 0) * (item.cantidad || 0);
+  
+  // Construir metadatos de forma condicional - VERSIÓN SIMPLIFICADA Y FUNCIONAL
+  const metadataParts: string[] = [];
+  
+  // Función auxiliar para validar y limpiar un campo
+  const getCleanField = (field?: string): string | null => {
+    if (!field) return null;
+    const trimmed = field.trim();
+    if (trimmed === "" || trimmed.toLowerCase() === "null") {
+      return null;
+    }
+    return trimmed;
+  };
+  
+  // Procesar cada campo
+  const cleanColor = getCleanField(item.selectedColor);
+  const cleanCategory = getCleanField(item.category);
+  const cleanType = getCleanField(item.type);
+  
+  if (cleanColor) {
+    metadataParts.push(escapeHtml(cleanColor));
+  }
+  
+  if (cleanCategory) {
+    metadataParts.push(escapeHtml(cleanCategory));
+  }
+  
+  if (cleanType) {
+    metadataParts.push(escapeHtml(cleanType));
+  }
+  
+  // Agregar stock si existe
+  if (item.stock !== undefined && item.stock !== null) {
+    metadataParts.push(`Stock: ${escapeHtml(String(item.stock))}`);
+  }
+  
+  // Si hay metadatos, unirlos con " - "
+  const metadata = metadataParts.length > 0 
+    ? metadataParts.join(" - ") 
+    : "";
+  
   return `
     <tr>
       <td colspan="3">
         <div>
           <p class="product-name">${escapeHtml(item.name)}</p>
-          <p class="product-meta">${escapeHtml(item.selectedColor || "")} ${item.category ? " - " + escapeHtml(item.category) : ""} ${item.type ? " - " + escapeHtml(item.type) : ""} ${item.stock !== undefined ? " - Stock: " + escapeHtml(String(item.stock)) : ""}</p>
+          ${metadata ? `<p class="product-meta">${metadata}</p>` : ''}
         </div>
       </td>
       <td class="qty">${escapeHtml(String(item.cantidad))}</td>

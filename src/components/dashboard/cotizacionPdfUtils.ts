@@ -20,11 +20,16 @@ export async function downloadCotizacionAsPDF(args: {
 }) {
   const { datosCliente, items, subtotal, descuentoTotal, totalFinal, fecha, logoUrl, fileName } = args;
 
-  // Mapear items si vienen con estructura distinta (opcional). En tu vista ya usas CotizacionItem similar.
+  // Mapear items y limpiar los datos de color
   const mappedItems = items.map(i => ({
     id: i.id,
     name: i.name,
-    selectedColor: i.selectedColor,
+    // Limpiar el campo selectedColor: remover "null" o valores vacíos
+    selectedColor: i.selectedColor && 
+                   i.selectedColor.trim() !== "" && 
+                   i.selectedColor.toLowerCase() !== "null" 
+                   ? i.selectedColor.trim() 
+                   : undefined,
     category: i.category,
     type: i.type,
     stock: i.stock,

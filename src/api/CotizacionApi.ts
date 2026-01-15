@@ -180,7 +180,12 @@ function mapBackendVariant(variant: BackendVariant): Variante {
     stock: variant.stock,
     stock_minimo: variant.stock_minimo,
     estado: variant.estado,
-    color_disenio: variant.color_disenio,
+    // Limpiar color_disenio si es "null" o vacío
+    color_disenio: variant.color_disenio && 
+                  variant.color_disenio.trim() !== "" && 
+                  variant.color_disenio.toLowerCase() !== "null"
+                  ? variant.color_disenio.trim()
+                  : "",
     color_luz: variant.color_luz,
     watt: variant.watt,
     tamano: variant.tamano,
@@ -257,7 +262,20 @@ export const getProductos = async (): Promise<Producto[]> => {
 export const searchProductos = async (query: string): Promise<Producto[]> => {
   try {
     const response = await api.get<BackendProduct[]>(`/cotizaciones/productos/search?q=${encodeURIComponent(query)}`);
-    return response.data.map(mapBackendProduct);
+    
+    // Mapear y limpiar datos
+    return response.data.map(producto => ({
+      ...mapBackendProduct(producto),
+      variantes: producto.variantes.map(variante => ({
+        ...mapBackendVariant(variante),
+        // Limpiar color_disenio si es "null" o vacío
+        color_disenio: variante.color_disenio && 
+                      variante.color_disenio.trim() !== "" && 
+                      variante.color_disenio.toLowerCase() !== "null"
+                      ? variante.color_disenio.trim()
+                      : ""
+      }))
+    }));
   } catch (error) {
     console.error("Error searching products:", error);
     throw new Error("No se pudieron buscar los productos");
