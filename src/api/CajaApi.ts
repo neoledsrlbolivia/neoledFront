@@ -105,10 +105,11 @@ export const getEstadoCajaActual = async (): Promise<EstadoCaja | null> => {
   }
 };
 
-// Obtener saldo actual (monto_final de estado_caja)
+// Obtener saldo actual (monto_final de estado_caja) - USAR ESTA FUNCIÓN
 export const getSaldoActual = async (): Promise<SaldoActualResponse> => {
   try {
-    const response = await api.get<SaldoActualResponse>("/caja/saldo-actual");
+    // MODIFICADO: Usar el mismo endpoint que RegistraMovimientoView
+    const response = await api.get<SaldoActualResponse>("/cash/status");
     return response.data;
   } catch (error) {
     console.error("Error fetching saldo actual:", error);
@@ -131,14 +132,30 @@ export const getUsuariosCaja = async (): Promise<string[]> => {
   }
 };
 
-// Obtener información del usuario actual (simulado para demo)
+// Obtener información del usuario actual
 export const getCurrentUser = async (): Promise<{ idusuario: number; rol: string; nombres: string; apellidos: string }> => {
-  // En una aplicación real, esto vendría del contexto de autenticación
-  // Por ahora simulamos un usuario para demo
-  return {
-    idusuario: 1,
-    rol: "Admin", // Cambiar a "Asistente" para probar el otro rol
-    nombres: "Juan",
-    apellidos: "Pérez"
-  };
+  try {
+    // Intenta obtener del contexto de autenticación
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return user;
+    }
+    
+    // Si no hay usuario en localStorage, usar valores por defecto para demo
+    return {
+      idusuario: 1,
+      rol: "Admin",
+      nombres: "Usuario",
+      apellidos: "Demo"
+    };
+  } catch (error) {
+    console.error("Error getting current user:", error);
+    return {
+      idusuario: 1,
+      rol: "Admin",
+      nombres: "Usuario",
+      apellidos: "Demo"
+    };
+  }
 };
