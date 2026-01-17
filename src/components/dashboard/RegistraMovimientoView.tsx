@@ -172,7 +172,7 @@ export function RegistraMovimientoView() {
     }
   };
 
-  // MODIFICADO: Formatear fecha UTC exactamente como viene del backend
+  // Formatear fecha UTC exactamente como viene del backend
   const formatDate = (isoDate: string) => {
     try {
       // Crear objeto Date desde el string ISO (UTC)
@@ -228,6 +228,15 @@ export function RegistraMovimientoView() {
   // Función para determinar si el botón debe estar deshabilitado
   const isButtonDisabled = () => {
     return !requiredFields() || loading || processing;
+  };
+
+  // Formatear la fecha de hoy para mostrar en el título
+  const formatTodayDate = () => {
+    const today = new Date();
+    const day = today.getDate();
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   return (
@@ -381,12 +390,12 @@ export function RegistraMovimientoView() {
           </CardContent>
         </Card>
 
-        {/* Historial de Movimientos del Usuario */}
+        {/* Historial de Movimientos del Usuario - SOLO HOY */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
-              Mis Movimientos Recientes
+              Mis Movimientos de Hoy ({formatTodayDate()})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -398,7 +407,7 @@ export function RegistraMovimientoView() {
             ) : transactions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No hay movimientos registrados</p>
+                <p>No hay movimientos registrados hoy</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -422,7 +431,7 @@ export function RegistraMovimientoView() {
                       </p>
                     )}
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
-                      {/* MODIFICADO: Usar la función formatDate que mantiene la hora UTC */}
+                      {/* Usar la función formatDate que mantiene la hora UTC */}
                       <span>{formatDate(transaction.fecha)}</span>
                       <span>{transaction.nombreUsuario}</span>
                     </div>

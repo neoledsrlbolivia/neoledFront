@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getUserId } from "@/api/AuthApi";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 interface BackendTransaction {
@@ -40,13 +41,28 @@ const api = axios.create({
   },
 });
 
+// Interceptor para agregar el token a las solicitudes (ya lo tienes en AuthApi, se comparte)
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const getCashStatus = async (): Promise<CashStatus> => {
   try {
-    const response = await api.get("/cash/status");
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+    
+    const response = await api.get("/cash/status", {
+      params: { userId }
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching cash status:", error);
-    // Retornar valores por defecto en caso de error
     return {
       estado: "cerrada",
       monto_final: "0.00"
@@ -56,7 +72,15 @@ export const getCashStatus = async (): Promise<CashStatus> => {
 
 export const getUserTransactions = async (): Promise<Transaction[]> => {
   try {
-    const response = await api.get<BackendTransaction[]>("/cash/transactions/user");
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+    
+    const response = await api.get<BackendTransaction[]>("/cash/transactions/user", {
+      params: { userId }
+    });
+    
     return response.data.map((transaction) => ({
       idTransaccion: transaction.idtransaccion,
       tipoMovimiento: transaction.tipo_movimiento,
@@ -68,7 +92,6 @@ export const getUserTransactions = async (): Promise<Transaction[]> => {
     }));
   } catch (error) {
     console.error("Error fetching user transactions:", error);
-    // Retornar array vacío en caso de error
     return [];
   }
 };
@@ -77,11 +100,18 @@ export const createTransaction = async (
   transaction: TransactionRequest
 ): Promise<Transaction> => {
   try {
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+    
     const response = await api.post<BackendTransaction>("/cash/transactions", {
       tipo_movimiento: transaction.tipoMovimiento,
       descripcion: transaction.descripcion,
       monto: transaction.monto.toString(),
+      idusuario: userId
     });
+    
     return mapBackendTransaction(response.data);
   } catch (error) {
     console.error("Error creating transaction:", error);
@@ -91,8 +121,14 @@ export const createTransaction = async (
 
 export const openCash = async (montoInicial: number): Promise<void> => {
   try {
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+    
     await api.post("/cash/open", {
       monto_inicial: montoInicial.toString(),
+      idusuario: userId
     });
   } catch (error) {
     console.error("Error opening cash:", error);
@@ -102,8 +138,14 @@ export const openCash = async (montoInicial: number): Promise<void> => {
 
 export const closeCash = async (): Promise<void> => {
   try {
-    // Para cierre no enviamos monto, el backend usa el monto actual
-    await api.post("/cash/close");
+    const userId = getUserId();
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
+    
+    await api.post("/cash/close", {
+      idusuario: userId
+    });
   } catch (error) {
     console.error("Error closing cash:", error);
     throw new Error("No se pudo cerrar la caja");
