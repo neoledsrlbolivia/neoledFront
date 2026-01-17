@@ -24,6 +24,35 @@ interface UsuarioOption {
   username: string;
 }
 
+// Función para formatear fecha UTC
+const formatDateUTC = (dateInput: string | Date) => {
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    const day = date.getUTCDate();
+    const month = date.getUTCMonth() + 1;
+    const year = date.getUTCFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return typeof dateInput === 'string' ? dateInput.substring(0, 10) : "Fecha inválida";
+  }
+};
+
+// Función para formatear hora UTC
+const formatTimeUTC = (dateInput: string | Date) => {
+  try {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    let hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
+    const formattedHours = hours < 10 ? `0${hours}` : hours.toString();
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
+    return `${formattedHours}:${formattedMinutes}`;
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return "";
+  }
+};
+
 export function VentasView() {
   const currentUser = getCurrentUser();
   const userRole = getUserRole() || "admin";
@@ -394,10 +423,10 @@ export function VentasView() {
                     {/* Fecha y Hora */}
                     <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
                       <div className="font-medium">
-                        {format(venta.fecha, "dd/MM/yyyy", { locale: es })}
+                        {formatDateUTC(venta.fecha)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {format(venta.fecha, "HH:mm", { locale: es })}
+                        {formatTimeUTC(venta.fecha)}
                       </div>
                     </TableCell>
                     
@@ -515,7 +544,7 @@ export function VentasView() {
             {/* Información del cliente */}
             <div className="info-cliente space-y-2">
               <p><strong>Cliente:</strong> {nombreCliente || "No especificado"}</p>
-              <p><strong>Fecha:</strong> {ventaSeleccionada ? format(ventaSeleccionada.fecha, "dd/MM/yyyy HH:mm", { locale: es }) : ""}</p>
+              <p><strong>Fecha:</strong> {ventaSeleccionada ? `${formatDateUTC(ventaSeleccionada.fecha)} ${formatTimeUTC(ventaSeleccionada.fecha)}` : ""}</p>
               <p><strong>Dirección:</strong> Av. Heroinas esq. Hamiraya #316</p>
               <p><strong>Números:</strong> 77950297 - 77918672</p>
             </div>
