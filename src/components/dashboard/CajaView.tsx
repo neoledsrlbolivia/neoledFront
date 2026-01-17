@@ -15,7 +15,7 @@ import {
   getTransaccionesCajaByUsuario, 
   getUsuariosCaja,
   getCurrentUser,
-  getSaldoActual
+  getSaldoActual  // Esta es la función que ahora usa el mismo endpoint que RegistraMovimientoView
 } from "@/api/CajaApi";
 
 export function CajaView() {
@@ -46,7 +46,7 @@ export function CajaView() {
         setCurrentUserId(userInfo.idusuario);
         setCurrentUserName(`${userInfo.nombres} ${userInfo.apellidos}`);
         
-        // Obtener saldo actual desde estado_caja
+        // Obtener saldo actual desde el mismo endpoint que RegistraMovimientoView
         const saldoData = await getSaldoActual();
         setSaldoActual(parseFloat(saldoData.monto_final));
         setEstadoCaja(saldoData.estado);
@@ -72,8 +72,17 @@ export function CajaView() {
         setEmpleados(["Juan Pérez", "María García", "Carlos López"]);
         setUserRole("Admin");
         setCurrentUserName("Usuario Demo");
-        setSaldoActual(641.25);
-        setEstadoCaja("abierta");
+        
+        // En caso de error, intentar obtener el saldo de otra manera
+        try {
+          const saldoData = await getSaldoActual();
+          setSaldoActual(parseFloat(saldoData.monto_final));
+          setEstadoCaja(saldoData.estado);
+        } catch (saldoError) {
+          console.error("Error obteniendo saldo:", saldoError);
+          setSaldoActual(641.25);
+          setEstadoCaja("abierta");
+        }
       } finally {
         setLoading(false);
       }
