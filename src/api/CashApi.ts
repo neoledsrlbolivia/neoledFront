@@ -41,7 +41,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor para agregar el token a las solicitudes (ya lo tienes en AuthApi, se comparte)
+// Interceptor para agregar el token a las solicitudes
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -52,14 +52,8 @@ api.interceptors.request.use((config) => {
 
 export const getCashStatus = async (): Promise<CashStatus> => {
   try {
-    const userId = getUserId();
-    if (!userId) {
-      throw new Error("Usuario no autenticado");
-    }
-    
-    const response = await api.get("/cash/status", {
-      params: { userId }
-    });
+    // MODIFICADO: Ya no enviamos userId
+    const response = await api.get("/cash/status");
     return response.data;
   } catch (error) {
     console.error("Error fetching cash status:", error);
