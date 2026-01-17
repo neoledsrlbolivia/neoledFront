@@ -116,6 +116,15 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
     return response.data.map(mapBackendProduct);
   } catch (error) {
     console.error("Error searching products:", error);
+    
+    // Verificar si es un error de red o del servidor
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 500) {
+        console.error("Server error details:", error.response.data);
+        throw new Error("Error del servidor al buscar productos. Por favor, intente nuevamente.");
+      }
+    }
+    
     throw new Error("No se pudieron buscar los productos");
   }
 };
