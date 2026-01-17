@@ -1,4 +1,4 @@
-// src/components/dashboard/EcommerceView.tsx - VERSIÓN COMPLETA
+// src/components/dashboard/EcommerceView.tsx - VERSIÓN FINAL CORREGIDA
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit2, Trash2, Search, ShoppingBag, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { getCarruseles, getAllProducts, createCarrusel, updateCarrusel, deleteCarrusel, searchProducts, getFullProductsBatch, Carrusel, Product } from "@/api/EcommerceViewApi";
+import { getCarruseles, getAllProducts, createCarrusel, updateCarrusel, deleteCarrusel, searchProducts, getSelectedProductsInfo, Carrusel, Product } from "@/api/EcommerceViewApi";
 
 // Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
@@ -47,8 +47,6 @@ export function EcommerceView() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const productSearchInputRef = useRef<HTMLInputElement>(null);
-  const carouselNameInputRef = useRef<HTMLInputElement>(null);
-  const editCarouselNameInputRef = useRef<HTMLInputElement>(null);
   const lastSearchQueryRef = useRef<string>("");
 
   // Debounce para búsqueda
@@ -117,7 +115,7 @@ export function EcommerceView() {
     const loadSelectedProducts = async () => {
       if (isCreateDialogOpen && newCarousel.productIds.length > 0) {
         try {
-          const fullProducts = await getFullProductsBatch(newCarousel.productIds);
+          const fullProducts = await getSelectedProductsInfo(newCarousel.productIds);
           setSelectedProductsInDialog(fullProducts);
         } catch (error) {
           console.error("Error cargando productos seleccionados:", error);
@@ -136,7 +134,7 @@ export function EcommerceView() {
     const loadEditProducts = async () => {
       if (isEditDialogOpen && editingCarousel && editingCarousel.productIds.length > 0) {
         try {
-          const fullProducts = await getFullProductsBatch(editingCarousel.productIds);
+          const fullProducts = await getSelectedProductsInfo(editingCarousel.productIds);
           setEditSelectedProducts(fullProducts);
         } catch (error) {
           console.error("Error cargando productos de edición:", error);
@@ -177,9 +175,26 @@ export function EcommerceView() {
     searchResults : 
     allProducts.slice(0, 20);
 
-  // Obtener productos seleccionados
-  const getSelectedProducts = (productIds: string[]): Product[] => {
-    return allProducts.filter(product => productIds.includes(product.id));
+  // Obtener productos seleccionados básicos
+  const getSelectedProductsBasic = (productIds: string[]): Product[] => {
+    const basicProducts = allProducts.filter(product => productIds.includes(product.id));
+    
+    // Si algún producto no está en allProducts, crear uno básico
+    const missingIds = productIds.filter(id => !allProducts.some(p => p.id === id));
+    const missingProducts = missingIds.map(id => ({
+      id,
+      name: "Cargando...",
+      description: "",
+      category: "Cargando...",
+      type: "Cargando...",
+      color: "Cargando...",
+      price: 0,
+      stock: 0,
+      images: [],
+      variants: []
+    }));
+    
+    return [...basicProducts, ...missingProducts];
   };
 
   // Diálogos
@@ -388,6 +403,10 @@ export function EcommerceView() {
                       src={product.images?.[0] || "/placeholder.svg"} 
                       alt={product.name}
                       className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-md"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/placeholder.svg";
+                      }}
                     />
                   </TableCell>
                   <TableCell className="font-medium">
@@ -413,7 +432,9 @@ export function EcommerceView() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{product.category}</TableCell>
                   <TableCell className="hidden md:table-cell">{product.type}</TableCell>
-                  <TableCell className="text-sm md:text-base">Bs{product.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-sm md:text-base">
+                    {product.price > 0 ? `Bs${product.price.toFixed(2)}` : "Bs0.00"}
+                  </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {product.variants && product.variants.length > 0 ? (
@@ -492,6 +513,10 @@ export function EcommerceView() {
                           src={product.images?.[0] || "/placeholder.svg"} 
                           alt={product.name}
                           className="w-8 h-8 md:w-12 md:h-12 object-cover rounded-md flex-shrink-0"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder.svg";
+                          }}
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium line-clamp-1">{product.name}</p>
@@ -518,7 +543,9 @@ export function EcommerceView() {
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-medium">Bs{product.price.toFixed(2)}</p>
+                          <p className="text-sm font-medium">
+                            {product.price > 0 ? `Bs${product.price.toFixed(2)}` : "Bs0.00"}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -586,7 +613,6 @@ export function EcommerceView() {
                   <Label htmlFor="carouselName">Nombre del Carrusel</Label>
                   <Input
                     id="carouselName"
-                    ref={carouselNameInputRef}
                     value={newCarousel.name}
                     onChange={(e) => setNewCarousel({...newCarousel, name: e.target.value})}
                     placeholder="Ej: Productos Destacados"
@@ -679,7 +705,6 @@ export function EcommerceView() {
                                 <Label htmlFor="editCarouselName">Nombre del Carrusel</Label>
                                 <Input
                                   id="editCarouselName"
-                                  ref={editCarouselNameInputRef}
                                   value={editingCarousel.name}
                                   onChange={(e) => setEditingCarousel({...editingCarousel, name: e.target.value})}
                                   disabled={isProcessing(`edit-${editingCarousel.id}`)}
