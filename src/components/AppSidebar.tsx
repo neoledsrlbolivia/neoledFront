@@ -43,7 +43,7 @@ const menuItems = [
   { title: "Vender", url: "vender", icon: ShoppingCart, roles: ["admin", "asistente"] },
   { title: "Notas", url: "notas", icon: StickyNote, roles: ["admin", "asistente"] },
   { title: "Productos", url: "productos", icon: Package, roles: ["admin", "asistente"] },
-  { title: "Inventario", url: "inventario", icon: Package2, roles: ["admin", "asistente"] },
+  { title: "Inventario", url: "inventario", icon: Package2, roles: ["admin"] },
   { title: "Ventas", url: "ventas", icon: TrendingUp, roles: ["admin", "asistente"] },
   { title: "Cotización", url: "cotizacion", icon: FileText, roles: ["admin", "asistente"] },
   { title: "Pagos Pendientes", url: "pagos-pendientes", icon: Clock, roles: ["admin", "asistente"] },
