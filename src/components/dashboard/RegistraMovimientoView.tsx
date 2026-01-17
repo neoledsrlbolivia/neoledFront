@@ -172,24 +172,38 @@ export function RegistraMovimientoView() {
     }
   };
 
-  // MODIFICADO: Convertir formato ISO a formato español local
+  // MODIFICADO: Formatear fecha UTC exactamente como viene del backend
   const formatDate = (isoDate: string) => {
     try {
-      // Crear objeto Date desde el string ISO
+      // Crear objeto Date desde el string ISO (UTC)
       const date = new Date(isoDate);
       
-      // Formatear la fecha en formato español (Bolivia)
-      const formattedDate = date.toLocaleString('es-BO', {
-        day: 'numeric',
-        month: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: true
-      });
+      // Extraer componentes UTC para mantener la hora exacta
+      const day = date.getUTCDate();
+      const month = date.getUTCMonth() + 1; // Los meses empiezan en 0
+      const year = date.getUTCFullYear();
       
-      return formattedDate;
+      let hours = date.getUTCHours();
+      const minutes = date.getUTCMinutes();
+      const seconds = date.getUTCSeconds();
+      
+      // Determinar si es AM o PM
+      const period = hours >= 12 ? 'p. m.' : 'a. m.';
+      
+      // Convertir a formato 12 horas
+      if (hours === 0) {
+        hours = 12; // Medianoche
+      } else if (hours > 12) {
+        hours = hours - 12;
+      }
+      
+      // Formatear con ceros iniciales si es necesario
+      const formattedHours = hours.toString();
+      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
+      const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds.toString();
+      
+      // Formato: 16/1/2026, 4:15:51 p. m.
+      return `${day}/${month}/${year}, ${formattedHours}:${formattedMinutes}:${formattedSeconds} ${period}`;
     } catch (error) {
       console.error("Error formatting date:", error);
       return isoDate; // Devolver el original si hay error
@@ -408,7 +422,7 @@ export function RegistraMovimientoView() {
                       </p>
                     )}
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
-                      {/* MODIFICADO: Usar la función formatDate que convierte ISO a formato español */}
+                      {/* MODIFICADO: Usar la función formatDate que mantiene la hora UTC */}
                       <span>{formatDate(transaction.fecha)}</span>
                       <span>{transaction.nombreUsuario}</span>
                     </div>
