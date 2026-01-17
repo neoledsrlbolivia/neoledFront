@@ -44,11 +44,11 @@ export interface DetalleVenta {
 
 export interface Venta {
   id: number;
-  fecha: Date;
+  fecha: string | Date;  // Cambiado a string | Date
   usuario: string;
   usuario_completo: string;
   usuario_login: string;
-  descripcion: string; // AÑADIR ESTA LÍNEA
+  descripcion: string;
   detalle: DetalleVenta[];
   subtotal: number;
   descuento: number;
@@ -113,11 +113,11 @@ export const getVentas = async (filtros?: VentasFiltros): Promise<Venta[]> => {
     
     return response.data.map((venta) => ({
       id: venta.idventa,
-      fecha: new Date(venta.fecha_hora),
+      fecha: venta.fecha_hora,  // Mantener como string ISO
       usuario: `${venta.usuario_nombre} ${venta.usuario_apellidos}`,
       usuario_completo: `${venta.usuario_nombre} ${venta.usuario_apellidos}`,
       usuario_login: venta.usuario_usuario,
-      descripcion: venta.descripcion, // AÑADIR ESTA LÍNEA
+      descripcion: venta.descripcion,
       detalle: venta.detalle.map((detalle) => ({
         iddetalle_venta: detalle.iddetalle_venta,
         idvariante: detalle.idvariante,
@@ -181,11 +181,11 @@ export const getVentasHoyAsistente = async (username: string): Promise<Venta[]> 
     
     return response.data.map((venta) => ({
       id: venta.idventa,
-      fecha: new Date(venta.fecha_hora),
+      fecha: venta.fecha_hora,  // Mantener como string ISO
       usuario: `${venta.usuario_nombre} ${venta.usuario_apellidos}`,
       usuario_completo: `${venta.usuario_nombre} ${venta.usuario_apellidos}`,
       usuario_login: venta.usuario_usuario,
-      descripcion: venta.descripcion, // AÑADIR ESTA LÍNEA
+      descripcion: venta.descripcion,
       detalle: venta.detalle.map((detalle) => ({
         iddetalle_venta: detalle.iddetalle_venta,
         idvariante: detalle.idvariante,
