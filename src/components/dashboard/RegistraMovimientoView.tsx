@@ -1,4 +1,3 @@
-// src/components/dashboard/RegistraMovimientoView.tsx
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -173,8 +172,28 @@ export function RegistraMovimientoView() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('es-BO');
+  // MODIFICADO: Convertir formato ISO a formato español local
+  const formatDate = (isoDate: string) => {
+    try {
+      // Crear objeto Date desde el string ISO
+      const date = new Date(isoDate);
+      
+      // Formatear la fecha en formato español (Bolivia)
+      const formattedDate = date.toLocaleString('es-BO', {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: true
+      });
+      
+      return formattedDate;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return isoDate; // Devolver el original si hay error
+    }
   };
 
   const getTipoBadgeClass = (tipo: string) => {
@@ -389,6 +408,7 @@ export function RegistraMovimientoView() {
                       </p>
                     )}
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
+                      {/* MODIFICADO: Usar la función formatDate que convierte ISO a formato español */}
                       <span>{formatDate(transaction.fecha)}</span>
                       <span>{transaction.nombreUsuario}</span>
                     </div>
