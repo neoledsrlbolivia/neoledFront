@@ -155,16 +155,16 @@ export function ProductosView() {
   const [tiposProducto, setTiposProducto] = useState<string[]>([]);
 
   // Cargar búsqueda desde inventario si existe
-  useState(() => {
+  useEffect(() => {
     const searchFromInventory = sessionStorage.getItem('searchProductName');
     if (searchFromInventory) {
       setSearchTerm(searchFromInventory);
       sessionStorage.removeItem('searchProductName');
     }
-  });
+  }, []);
 
   const userRole = localStorage.getItem("userRole") || "admin";
-  const isAssistant = userRole === "asistente";
+  const isAssistant = userRole === "Asistente";
 
   const [stockFormData, setStockFormData] = useState<StockFormData>({
     stockActual: 0,
@@ -234,6 +234,7 @@ export function ProductosView() {
   const productsToShow = showAllProducts ? products : filteredProducts;
 
   const handleEdit = (product: Producto) => {
+    if (isAssistant) return; // Asistentes no pueden editar
     setEditingProduct(product);
     setIsFormOpen(true);
   };
@@ -283,6 +284,8 @@ export function ProductosView() {
   };
 
   const handleDelete = async (productId: number, productName: string) => {
+    if (isAssistant) return; // Asistentes no pueden eliminar
+    
     try {
       await deleteProducto(productId);
       toast({
@@ -357,7 +360,9 @@ export function ProductosView() {
   return (
     <div className="space-y-4 md:space-y-6 p-2 md:p-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">Gestión de Productos</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-primary">
+          {isAssistant ? "Visualización de Productos" : "Gestión de Productos"}
+        </h1>
         {!isAssistant && (
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
             <DialogTrigger asChild>
@@ -396,15 +401,15 @@ export function ProductosView() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Producto: {currentStockProduct?.nombre}</Label>
-              <Label>Variante: {stockFormData.varianteNombre}</Label>
+              <div className="text-sm font-medium">Producto: {currentStockProduct?.nombre}</div>
+              <div className="text-sm font-medium">Variante: {stockFormData.varianteNombre}</div>
             </div>
             <div className="space-y-2">
-              <Label>Stock actual</Label>
+              <div className="text-sm font-medium">Stock actual</div>
               <Input value={stockFormData.stockActual} disabled />
             </div>
             <div className="space-y-2">
-              <Label>Cantidad a añadir</Label>
+              <div className="text-sm font-medium">Cantidad a añadir</div>
               <Input
                 type="number"
                 value={stockFormData.cantidadAñadir}
@@ -416,7 +421,7 @@ export function ProductosView() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Total después del aumento</Label>
+              <div className="text-sm font-medium">Total después del aumento</div>
               <Input
                 value={stockFormData.stockActual + parseInt(stockFormData.cantidadAñadir || "0")}
                 disabled
@@ -723,10 +728,3 @@ export function ProductosView() {
     </div>
   );
 }
-
-// Componente Label necesario para el diálogo de stock
-const Label = ({ children, ...props }: any) => (
-  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" {...props}>
-    {children}
-  </label>
-);
