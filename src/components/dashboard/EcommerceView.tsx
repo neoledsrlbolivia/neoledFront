@@ -1,4 +1,4 @@
-// src/components/dashboard/EcommerceView.tsx
+// src/components/dashboard/EcommerceView.tsx - VERSIÓN COMPLETA
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit2, Trash2, Search, ShoppingBag, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { getCarruseles, getAllProducts, createCarrusel, updateCarrusel, deleteCarrusel, searchProducts, Carrusel, Product } from "@/api/EcommerceViewApi";
+import { getCarruseles, getAllProducts, createCarrusel, updateCarrusel, deleteCarrusel, searchProducts, getFullProductsBatch, Carrusel, Product } from "@/api/EcommerceViewApi";
 
-// Hook personalizado para debounce
+// Hook para debounce
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -43,26 +42,55 @@ export function EcommerceView() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProductsInDialog, setSelectedProductsInDialog] = useState<Product[]>([]);
+  const [editSelectedProducts, setEditSelectedProducts] = useState<Product[]>([]);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const productSearchInputRef = useRef<HTMLInputElement>(null);
   const carouselNameInputRef = useRef<HTMLInputElement>(null);
   const editCarouselNameInputRef = useRef<HTMLInputElement>(null);
   const lastSearchQueryRef = useRef<string>("");
-  const isSearchingRef = useRef<boolean>(false);
 
-  // Usar el hook de debounce para la búsqueda
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  // Debounce para búsqueda
   const debouncedProductSearchTerm = useDebounce(productSearchTerm, 300);
 
-  // Cargar datos iniciales
+  // Cargar solo carruseles al inicio
   useEffect(() => {
-    loadData();
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        // Solo cargar carruseles inmediatamente
+        const carouselsData = await getCarruseles();
+        setCarousels(carouselsData);
+        
+        // Cargar productos en segundo plano (sin bloquear UI)
+        setTimeout(async () => {
+          try {
+            const productsData = await getAllProducts();
+            setAllProducts(productsData);
+          } catch (error) {
+            console.error("Error cargando productos en segundo plano:", error);
+          }
+        }, 100);
+        
+      } catch (error) {
+        console.error("Error loading carousels:", error);
+        toast({ 
+          title: "Error", 
+          description: "No se pudieron cargar los carruseles", 
+          variant: "destructive" 
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
   }, []);
 
-  // Efecto para manejar la búsqueda de productos con debounce
+  // Búsqueda de productos solo cuando se escribe
   useEffect(() => {
-    const searchProductsBackend = async () => {
+    const performSearch = async () => {
       if (debouncedProductSearchTerm.trim().length >= 2 && debouncedProductSearchTerm !== lastSearchQueryRef.current) {
         lastSearchQueryRef.current = debouncedProductSearchTerm;
         setSearchLoading(true);
@@ -81,151 +109,114 @@ export function EcommerceView() {
       }
     };
 
-    searchProductsBackend();
+    performSearch();
   }, [debouncedProductSearchTerm]);
 
-  // Manejar el evento de popstate (botón atrás del navegador)
+  // Cargar productos completos cuando se abre diálogo de creación
   useEffect(() => {
-    const handlePopState = (event: PopStateEvent) => {
-      // Si algún diálogo está abierto, prevenir la navegación y cerrar el diálogo
-      if (isCreateDialogOpen || isEditDialogOpen) {
-        event.preventDefault();
-        
-        if (isCreateDialogOpen) {
-          setIsCreateDialogOpen(false);
-          // Limpiar el estado del nuevo carrusel si se cancela
-          setNewCarousel({ name: "", productIds: [] });
+    const loadSelectedProducts = async () => {
+      if (isCreateDialogOpen && newCarousel.productIds.length > 0) {
+        try {
+          const fullProducts = await getFullProductsBatch(newCarousel.productIds);
+          setSelectedProductsInDialog(fullProducts);
+        } catch (error) {
+          console.error("Error cargando productos seleccionados:", error);
+          setSelectedProductsInDialog([]);
         }
-        
-        if (isEditDialogOpen) {
-          setIsEditDialogOpen(false);
-          setEditingCarousel(null);
+      } else {
+        setSelectedProductsInDialog([]);
+      }
+    };
+
+    loadSelectedProducts();
+  }, [isCreateDialogOpen, newCarousel.productIds]);
+
+  // Cargar productos completos cuando se abre diálogo de edición
+  useEffect(() => {
+    const loadEditProducts = async () => {
+      if (isEditDialogOpen && editingCarousel && editingCarousel.productIds.length > 0) {
+        try {
+          const fullProducts = await getFullProductsBatch(editingCarousel.productIds);
+          setEditSelectedProducts(fullProducts);
+        } catch (error) {
+          console.error("Error cargando productos de edición:", error);
+          setEditSelectedProducts([]);
         }
-        
-        // Agregar un nuevo estado al historial para mantener la posición actual
-        window.history.pushState(null, "", window.location.href);
+      } else {
+        setEditSelectedProducts([]);
+      }
+    };
+
+    loadEditProducts();
+  }, [isEditDialogOpen, editingCarousel]);
+
+  // Manejar popstate
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isCreateDialogOpen) {
+        setIsCreateDialogOpen(false);
+        setNewCarousel({ name: "", productIds: [] });
+      }
+      if (isEditDialogOpen) {
+        setIsEditDialogOpen(false);
+        setEditingCarousel(null);
       }
     };
 
     window.addEventListener('popstate', handlePopState);
-    
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [isCreateDialogOpen, isEditDialogOpen]);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [carouselsData, productsData] = await Promise.all([
-        getCarruseles(),
-        getAllProducts()
-      ]);
-      setCarousels(carouselsData);
-      setAllProducts(productsData);
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast({ 
-        title: "Error", 
-        description: "No se pudieron cargar los datos", 
-        variant: "destructive" 
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filtrar carruseles por búsqueda
+  // Filtrar carruseles
   const filteredCarousels = carousels.filter(carousel => 
     carousel.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Obtener productos disponibles para mostrar (búsqueda o todos)
+  // Productos disponibles para mostrar
   const availableProducts = debouncedProductSearchTerm.trim().length >= 2 ? 
     searchResults : 
-    allProducts.slice(0, 20); // Mostrar solo los primeros 20 productos cuando no hay búsqueda
+    allProducts.slice(0, 20);
 
-  // Obtener productos seleccionados por ID
-  const getSelectedProducts = (productIds: string[]) => {
+  // Obtener productos seleccionados
+  const getSelectedProducts = (productIds: string[]): Product[] => {
     return allProducts.filter(product => productIds.includes(product.id));
   };
 
-  // Manejar apertura del diálogo de creación
+  // Diálogos
   const handleCreateDialogOpen = (open: boolean) => {
     setIsCreateDialogOpen(open);
     if (!open) {
       setNewCarousel({ name: "", productIds: [] });
       setProductSearchTerm("");
-    } else {
-      // Agregar estado al historial cuando se abre el diálogo
-      window.history.pushState({ dialogOpen: true }, "");
+      setSelectedProductsInDialog([]);
     }
   };
 
-  // Manejar apertura del diálogo de edición
   const handleEditDialogOpen = (open: boolean, carousel?: Carrusel) => {
     setIsEditDialogOpen(open);
     if (open && carousel) {
       setEditingCarousel(carousel);
-      // Agregar estado al historial cuando se abre el diálogo
-      window.history.pushState({ dialogOpen: true }, "");
     } else {
       setEditingCarousel(null);
       setProductSearchTerm("");
+      setEditSelectedProducts([]);
     }
   };
 
-  // Manejar cambios en la búsqueda manteniendo el foco
+  // Búsqueda
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    // Mantener el foco inmediatamente al cambiar
-    if (searchInputRef.current) {
-      const currentPosition = e.target.selectionStart;
-      setTimeout(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus();
-          if (currentPosition !== null) {
-            searchInputRef.current.setSelectionRange(currentPosition, currentPosition);
-          }
-        }
-      }, 0);
-    }
+    setSearchTerm(e.target.value);
   };
 
-  // Manejar cambios en la búsqueda de productos manteniendo el foco
   const handleProductSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setProductSearchTerm(value);
-    
-    // Mantener el foco inmediatamente al cambiar
-    if (productSearchInputRef.current) {
-      const currentPosition = e.target.selectionStart;
-      setTimeout(() => {
-        if (productSearchInputRef.current) {
-          productSearchInputRef.current.focus();
-          if (currentPosition !== null) {
-            productSearchInputRef.current.setSelectionRange(currentPosition, currentPosition);
-          }
-        }
-      }, 0);
-    }
+    setProductSearchTerm(e.target.value);
   };
 
-  // Prevenir que Enter recargue o haga algo que pueda quitar el foco
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
+    if (e.key === 'Enter') e.preventDefault();
   };
 
-  // Prevenir que otros elementos interfieran con el foco
-  const handleSearchMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  // Gestión de Carruseles
+  // Operaciones
   const handleCreateCarousel = async () => {
     if (processing) return;
     
@@ -261,14 +252,14 @@ export function EcommerceView() {
   };
 
   const handleEditCarousel = async (carousel: Carrusel) => {
-    if (processing) return;
+    if (processing || !editingCarousel) return;
     
-    setProcessing(`edit-${carousel.id}`);
+    setProcessing(`edit-${editingCarousel.id}`);
     
     try {
-      const productIds = carousel.productIds.map(id => parseInt(id));
-      const carruselActualizado = await updateCarrusel(carousel.id, {
-        nombre: carousel.name,
+      const productIds = editingCarousel.productIds.map(id => parseInt(id));
+      const carruselActualizado = await updateCarrusel(editingCarousel.id, {
+        nombre: editingCarousel.name,
         productIds: productIds
       });
       
@@ -339,16 +330,8 @@ export function EcommerceView() {
         productIds: [...newCarousel.productIds, productId]
       });
     }
+    
     setProductSearchTerm("");
-    
-    // Enfocar y preparar el input para nueva búsqueda (para ambos dispositivos)
-    setTimeout(() => {
-      if (productSearchInputRef.current) {
-        productSearchInputRef.current.focus();
-        productSearchInputRef.current.select(); // Seleccionar todo el texto para facilitar nueva búsqueda
-      }
-    }, 50);
-    
     toast({ title: "Éxito", description: "Producto agregado al carrusel" });
   };
 
@@ -368,18 +351,13 @@ export function EcommerceView() {
     }
   };
 
-  // Función para verificar si un botón está procesando
-  const isProcessing = (operation: string) => {
-    return processing === operation;
-  };
+  // Verificaciones
+  const isProcessing = (operation: string) => processing === operation;
+  const isAnyProcessing = () => processing !== null;
 
-  // Función para verificar si se está procesando cualquier operación
-  const isAnyProcessing = () => {
-    return processing !== null;
-  };
-
+  // Componente ProductTable
   const ProductTable = ({ products, onRemove, isEditing = false }: { 
-    products: any[], 
+    products: Product[], 
     onRemove: (productId: string) => void,
     isEditing?: boolean 
   }) => (
@@ -458,7 +436,6 @@ export function EcommerceView() {
                       onClick={() => onRemove(product.id)}
                       className="h-6 w-6 md:h-8 md:w-8 p-0 text-destructive hover:text-destructive"
                       disabled={isAnyProcessing()}
-                      onMouseDown={(e) => e.preventDefault()}
                     >
                       <X className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
@@ -484,7 +461,6 @@ export function EcommerceView() {
             value={productSearchTerm}
             onChange={handleProductSearchChange}
             onKeyDown={handleSearchKeyDown}
-            onMouseDown={handleSearchMouseDown}
             className="pl-8"
             disabled={isAnyProcessing()}
           />
@@ -509,7 +485,6 @@ export function EcommerceView() {
                     key={product.id} 
                     className="flex items-center justify-between p-2 hover:bg-muted rounded cursor-pointer"
                     onClick={() => addProductToCarousel(product.id, isEditing)}
-                    onMouseDown={(e) => e.preventDefault()}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2 md:gap-4">
@@ -552,7 +527,6 @@ export function EcommerceView() {
                       variant="ghost" 
                       className="ml-2 h-8 w-8 p-0 flex-shrink-0"
                       disabled={isAnyProcessing()}
-                      onMouseDown={(e) => e.preventDefault()}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -617,12 +591,11 @@ export function EcommerceView() {
                     onChange={(e) => setNewCarousel({...newCarousel, name: e.target.value})}
                     placeholder="Ej: Productos Destacados"
                     disabled={isProcessing("create")}
-                    onMouseDown={(e) => e.stopPropagation()}
                   />
                 </div>
                 
                 <ProductTable 
-                  products={getSelectedProducts(newCarousel.productIds)}
+                  products={selectedProductsInDialog}
                   onRemove={(productId) => removeProductFromCarousel(productId, false)}
                 />
               </div>
@@ -668,7 +641,6 @@ export function EcommerceView() {
                 value={searchTerm}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
-                onMouseDown={handleSearchMouseDown}
                 className="pl-8"
                 disabled={isAnyProcessing()}
               />
@@ -711,12 +683,11 @@ export function EcommerceView() {
                                   value={editingCarousel.name}
                                   onChange={(e) => setEditingCarousel({...editingCarousel, name: e.target.value})}
                                   disabled={isProcessing(`edit-${editingCarousel.id}`)}
-                                  onMouseDown={(e) => e.stopPropagation()}
                                 />
                               </div>
                               
                               <ProductTable 
-                                products={getSelectedProducts(editingCarousel.productIds)}
+                                products={editSelectedProducts}
                                 onRemove={(productId) => removeProductFromCarousel(productId, true)}
                                 isEditing={true}
                               />
