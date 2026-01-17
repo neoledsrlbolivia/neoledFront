@@ -101,17 +101,10 @@ export function VenderView() {
       const results = await searchProducts(query);
       setSearchResults(results);
       
-      // Mantener el foco después de la búsqueda (para ambos dispositivos)
-      setTimeout(() => {
-        if (searchInputRef.current) {
-          const currentPosition = searchInputRef.current.selectionStart;
-          searchInputRef.current.focus();
-          // Restaurar la posición del cursor
-          if (currentPosition) {
-            searchInputRef.current.setSelectionRange(currentPosition, currentPosition);
-          }
-        }
-      }, 10);
+      // Ocultar el teclado después de la búsqueda (especialmente importante en móvil)
+      if (searchInputRef.current) {
+        searchInputRef.current.blur();
+      }
       
     } catch (error) {
       toast({
@@ -129,42 +122,30 @@ export function VenderView() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
-    // Mantener el foco inmediatamente al cambiar (para ambos dispositivos)
-    if (searchInputRef.current) {
-      const currentPosition = e.target.selectionStart;
-      setTimeout(() => {
-        if (searchInputRef.current) {
-          searchInputRef.current.focus();
-          if (currentPosition !== null) {
-            searchInputRef.current.setSelectionRange(currentPosition, currentPosition);
-          }
-        }
-      }, 0);
-    }
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Prevenir que Enter recargue o haga algo que pueda quitar el foco
+    // Si presiona Enter, ocultar el teclado
     if (e.key === 'Enter') {
       e.preventDefault();
+      if (searchInputRef.current) {
+        searchInputRef.current.blur();
+      }
     }
   };
 
-  const handleSearchMouseDown = (e: React.MouseEvent) => {
-    // Prevenir que otros elementos interfieran con el foco (para ambos dispositivos)
-    e.stopPropagation();
+  const handleSearchFocus = () => {
+    // Solo para debugging, puedes comentar esto después
+    console.log("Search input focused manually");
   };
 
   const toggleProductExpansion = (productId: number) => {
     setExpandedProduct(expandedProduct === productId ? null : productId);
     
-    // Mantener el foco después de expandir/contraer (para ambos dispositivos)
-    setTimeout(() => {
-      if (searchInputRef.current) {
-        searchInputRef.current.focus();
-      }
-    }, 10);
+    // Asegurarse de que el teclado esté oculto cuando se expanden/contraen las variantes
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
   };
 
   const agregarVariante = (variant: Variant, product: Product) => {
@@ -212,13 +193,10 @@ export function VenderView() {
     setSearchResults([]);
     setExpandedProduct(null);
     
-    // Enfocar y preparar el input para nueva búsqueda (para ambos dispositivos)
-    setTimeout(() => {
-      if (searchInputRef.current) {
-        searchInputRef.current.focus();
-        searchInputRef.current.select(); // Seleccionar todo el texto para facilitar nueva búsqueda
-      }
-    }, 50);
+    // Ocultar el teclado después de agregar un producto
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
     
     if (isMobile && cartRef.current) {
       setTimeout(() => {
@@ -434,10 +412,10 @@ export function VenderView() {
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
-                onMouseDown={handleSearchMouseDown}
+                onFocus={handleSearchFocus}
                 className="pl-10"
                 disabled={loading}
-                autoFocus
+                autoFocus={false} // No enfocar automáticamente
               />
             </div>
 
@@ -454,7 +432,6 @@ export function VenderView() {
                     <div 
                       className="flex items-center justify-between cursor-pointer"
                       onClick={() => toggleProductExpansion(product.idproducto)}
-                      onMouseDown={(e) => e.preventDefault()} // Prevenir que quite el foco
                     >
                       <div className="flex items-start gap-3 flex-1">
                         {product.variantes[0]?.imagenes?.[0] ? (
@@ -488,7 +465,6 @@ export function VenderView() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onMouseDown={(e) => e.preventDefault()} // Prevenir que quite el foco
                       >
                         {expandedProduct === product.idproducto ? (
                           <ChevronUp className="h-4 w-4" />
@@ -507,7 +483,6 @@ export function VenderView() {
                           <div 
                             key={variant.idvariante} 
                             className="flex items-center gap-3 p-2 border rounded"
-                            onMouseDown={(e) => e.preventDefault()} // Prevenir que quite el foco
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex flex-wrap gap-1 mb-1">
@@ -534,7 +509,6 @@ export function VenderView() {
                             <Button
                               size="sm"
                               onClick={() => agregarVariante(variant, product)}
-                              onMouseDown={(e) => e.preventDefault()} // Prevenir que quite el foco
                               disabled={variant.stock === 0}
                             >
                               {variant.stock === 0 ? "Sin Stock" : "Agregar"}
