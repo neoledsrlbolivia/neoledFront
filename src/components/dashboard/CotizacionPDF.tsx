@@ -66,9 +66,12 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     fileName = "cotizacion.pdf"
   } = params;
 
-  // Calcular abono y saldo
-  const abono = 0; // Siemmostrar abono 0
-  const saldo = totalFinal; // Siempre mostrar saldo igual al total
+  // Determinar si es contra entrega
+  const esContraEntrega = datosCliente.tipoPago === "contra-entrega";
+
+  // Calcular abono y saldo - siempre 0 y totalFinal respectivamente
+  const abono = 0;
+  const saldo = totalFinal;
 
   // 1) Crear el contenedor offscreen
   const wrapper = document.createElement("div");
@@ -145,7 +148,62 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     }
   `;
 
-  // 3) Construir HTML con los datos (tabla y sidebar)
+  // 3) Construir el contenido del resumen de pagos
+  let resumenHTML = `
+    <!-- Fila de Subtotal - Integrada en la tabla -->
+    <tr class="resumen-row">
+      <td colspan="3" class="resumen-label">Subtotal</td>
+      <td class="qty"></td>
+      <td class="unit"></td>
+      <td class="total resumen-value">Bs ${formatNumber(subtotal)}</td>
+    </tr>
+    
+    <!-- Fila de Descuento - Solo si hay descuento -->
+    ${descuentoTotal > 0 ? `
+      <tr class="resumen-row">
+        <td colspan="3" class="descuento-label">Descuento</td>
+        <td class="qty"></td>
+        <td class="unit"></td>
+        <td class="total descuento-value">-Bs ${formatNumber(descuentoTotal)}</td>
+      </tr>
+    ` : ''}
+    
+    <!-- Fila de Total - Integrada en la tabla -->
+    <tr class="resumen-row">
+      <td colspan="3" class="resumen-total">Total</td>
+      <td class="qty"></td>
+      <td class="unit"></td>
+      <td class="total resumen-total-value">Bs ${formatNumber(totalFinal)}</td>
+    </tr>
+  `;
+
+  // Solo agregar Abono y Saldo si NO es contra entrega
+  if (!esContraEntrega) {
+    resumenHTML += `
+      <!-- Línea de separación -->
+      <tr class="separator-row">
+        <td colspan="6" style="border-top: 2px solid #d1d5db; padding: 4px 0;"></td>
+      </tr>
+      
+      <!-- Fila de Abono - Integrada en la tabla -->
+      <tr class="resumen-row">
+        <td colspan="3" class="resumen-abono-label">Abono</td>
+        <td class="qty"></td>
+        <td class="unit"></td>
+        <td class="total resumen-abono-value">Bs ${formatNumber(abono)}</td>
+      </tr>
+      
+      <!-- Fila de Saldo - Integrada en la tabla -->
+      <tr class="resumen-row">
+        <td colspan="3" class="resumen-saldo-label">Saldo</td>
+        <td class="qty"></td>
+        <td class="unit"></td>
+        <td class="total resumen-saldo-value">Bs ${formatNumber(saldo)}</td>
+      </tr>
+    `;
+  }
+
+  // 4) Construir HTML con los datos (tabla y sidebar)
   const leftHTML = `
     <div class="card" style="margin-bottom:12px;">
       <table class="table" style="width:100%; border-bottom:none;">
@@ -185,58 +243,13 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
         <tbody>
           ${items.map(itemRowHtml).join("")}
           
-          <!-- Fila de Subtotal - Integrada en la tabla -->
-          <tr class="resumen-row">
-            <td colspan="3" class="resumen-label">Subtotal</td>
-            <td class="qty"></td>
-            <td class="unit"></td>
-            <td class="total resumen-value">Bs ${formatNumber(subtotal)}</td>
-          </tr>
-          
-          <!-- Fila de Descuento - Solo si hay descuento -->
-          ${descuentoTotal > 0 ? `
-            <tr class="resumen-row">
-              <td colspan="3" class="descuento-label">Descuento</td>
-              <td class="qty"></td>
-              <td class="unit"></td>
-              <td class="total descuento-value">-Bs ${formatNumber(descuentoTotal)}</td>
-            </tr>
-          ` : ''}
-          
-          <!-- Fila de Total - Integrada en la tabla -->
-          <tr class="resumen-row">
-            <td colspan="3" class="resumen-total">Total</td>
-            <td class="qty"></td>
-            <td class="unit"></td>
-            <td class="total resumen-total-value">Bs ${formatNumber(totalFinal)}</td>
-          </tr>
-          
-          <!-- Línea de separación -->
-          <tr class="separator-row">
-            <td colspan="6" style="border-top: 2px solid #d1d5db; padding: 4px 0;"></td>
-          </tr>
-          
-          <!-- Fila de Abono - Integrada en la tabla -->
-          <tr class="resumen-row">
-            <td colspan="3" class="resumen-abono-label">Abono</td>
-            <td class="qty"></td>
-            <td class="unit"></td>
-            <td class="total resumen-abono-value">Bs ${formatNumber(abono)}</td>
-          </tr>
-          
-          <!-- Fila de Saldo - Integrada en la tabla -->
-          <tr class="resumen-row">
-            <td colspan="3" class="resumen-saldo-label">Saldo</td>
-            <td class="qty"></td>
-            <td class="unit"></td>
-            <td class="total resumen-saldo-value">Bs ${formatNumber(saldo)}</td>
-          </tr>
+          ${resumenHTML}
         </tbody>
       </table>
     </div>
   `;
 
-  // 4) Construir la cabecera con logo a la derecha
+  // 5) Construir la cabecera con logo a la derecha
   const cabeceraHTML = `
     <div style="display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 20px;">
       <div class="cabecera-cotizacion">
@@ -274,7 +287,7 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
 
   document.body.appendChild(wrapper);
 
-  // 5) Renderizar a canvas con html2canvas
+  // 6) Renderizar a canvas con html2canvas
   try {
     // html2canvas opciones para mejor calidad
     const node = wrapper;
@@ -288,7 +301,7 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
       windowHeight: node.scrollHeight
     });
 
-    // 6) Pasar a jsPDF
+    // 7) Pasar a jsPDF
     const imgData = canvas.toDataURL("image/png");
     // Tamaño de A4 en pt: 595.28 x 841.89 (portrait). Usamos landscape para que quepa mejor.
     const pdf = new jsPDF({
