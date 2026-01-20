@@ -102,68 +102,54 @@ export function CajaView() {
       
       let datosFiltrados: TransaccionCaja[] = [];
       
-      // Determinar qué función de API usar según los filtros activos
+      // Formatear fechas como YYYY-MM-DD (sin ajustes de zona horaria)
       const fechaStr = fechaBusqueda ? format(fechaBusqueda, "yyyy-MM-dd") : "";
-      const fechaInicioStr = fechaRangoAplicado.from ? format(fechaRangoAplicado.from, "yyyy-MM-dd") : "";
-      const fechaFinStr = fechaRangoAplicado.to ? format(fechaRangoAplicado.to, "yyyy-MM-dd") : "";
-      
-      console.log("Buscando con filtros:", {
-        userRole,
-        fechaBusqueda: fechaStr,
-        fechaRango: fechaInicioStr && fechaFinStr ? `${fechaInicioStr} a ${fechaFinStr}` : 'none',
-        filtroEmpleado
-      });
       
       if (userRole === "Admin") {
-        // Caso 1: Admin con fecha específica
-        if (fechaBusqueda && !fechaRangoAplicado.from && !fechaRangoAplicado.to) {
-          console.log("Caso 1: Admin con fecha específica");
+        // CASO 1: FECHA ESPECÍFICA (prioridad máxima)
+        if (fechaBusqueda) {
+          console.log("🔍 Buscando por fecha específica:", fechaStr);
           datosFiltrados = await getTransaccionesCajaByFecha(fechaStr);
         }
-        // Caso 2: Admin con rango de fechas
-        else if (fechaRangoAplicado.from && fechaRangoAplicado.to && !fechaBusqueda) {
-          console.log("Caso 2: Admin con rango de fechas");
+        // CASO 2: RANGO DE FECHAS (solo si no hay fecha específica)
+        else if (fechaRangoAplicado.from && fechaRangoAplicado.to) {
+          const fechaInicioStr = format(fechaRangoAplicado.from, "yyyy-MM-dd");
+          const fechaFinStr = format(fechaRangoAplicado.to, "yyyy-MM-dd");
+          console.log("🔍 Buscando por rango:", fechaInicioStr, "a", fechaFinStr);
           datosFiltrados = await getTransaccionesCajaByRango(fechaInicioStr, fechaFinStr);
         }
-        // Caso 3: Admin sin filtros de fecha
-        else if (!fechaBusqueda && !fechaRangoAplicado.from && !fechaRangoAplicado.to) {
-          console.log("Caso 3: Admin sin filtros de fecha");
+        // CASO 3: SIN FILTROS DE FECHA
+        else {
+          console.log("🔍 Buscando todos los movimientos");
           datosFiltrados = await getTransaccionesCaja();
         }
-        // Caso 4: Si ambos filtros están activos, priorizar fecha específica
-        else if (fechaBusqueda && (fechaRangoAplicado.from || fechaRangoAplicado.to)) {
-          console.log("Caso 4: Ambos filtros activos, usando fecha específica");
-          datosFiltrados = await getTransaccionesCajaByFecha(fechaStr);
-        }
       } else {
-        // Caso 1: Usuario con fecha específica
-        if (fechaBusqueda && !fechaRangoAplicado.from && !fechaRangoAplicado.to) {
-          console.log("Caso 1: Usuario con fecha específica");
+        // CASO 1: FECHA ESPECÍFICA (prioridad máxima)
+        if (fechaBusqueda) {
+          console.log("🔍 Buscando por fecha específica (usuario):", fechaStr);
           datosFiltrados = await getTransaccionesCajaByUsuarioFecha(currentUserId, fechaStr);
         }
-        // Caso 2: Usuario con rango de fechas
-        else if (fechaRangoAplicado.from && fechaRangoAplicado.to && !fechaBusqueda) {
-          console.log("Caso 2: Usuario con rango de fechas");
+        // CASO 2: RANGO DE FECHAS (solo si no hay fecha específica)
+        else if (fechaRangoAplicado.from && fechaRangoAplicado.to) {
+          const fechaInicioStr = format(fechaRangoAplicado.from, "yyyy-MM-dd");
+          const fechaFinStr = format(fechaRangoAplicado.to, "yyyy-MM-dd");
+          console.log("🔍 Buscando por rango (usuario):", fechaInicioStr, "a", fechaFinStr);
           datosFiltrados = await getTransaccionesCajaByUsuarioRango(currentUserId, fechaInicioStr, fechaFinStr);
         }
-        // Caso 3: Usuario sin filtros de fecha
-        else if (!fechaBusqueda && !fechaRangoAplicado.from && !fechaRangoAplicado.to) {
-          console.log("Caso 3: Usuario sin filtros de fecha");
+        // CASO 3: SIN FILTROS DE FECHA
+        else {
+          console.log("🔍 Buscando todos los movimientos (usuario)");
           datosFiltrados = await getTransaccionesCajaByUsuario(currentUserId);
-        }
-        // Caso 4: Si ambos filtros están activos, priorizar fecha específica
-        else if (fechaBusqueda && (fechaRangoAplicado.from || fechaRangoAplicado.to)) {
-          console.log("Caso 4: Ambos filtros activos, usando fecha específica");
-          datosFiltrados = await getTransaccionesCajaByUsuarioFecha(currentUserId, fechaStr);
         }
       }
       
-      console.log("Datos encontrados:", datosFiltrados.length);
+      console.log("📊 Resultados encontrados:", datosFiltrados.length);
       
       // Filtrar por empleado si es Admin y no es "Todos"
       if (userRole === "Admin" && filtroEmpleado !== "Todos") {
+        const antes = datosFiltrados.length;
         datosFiltrados = datosFiltrados.filter(mov => mov.empleado === filtroEmpleado);
-        console.log("Después de filtrar por empleado:", datosFiltrados.length);
+        console.log(`👤 Filtrado por empleado "${filtroEmpleado}": ${antes} -> ${datosFiltrados.length}`);
       }
       
       setMovimientosCaja(datosFiltrados);
@@ -177,31 +163,30 @@ export function CajaView() {
     }
   };
 
-  // Función para convertir string/Date a Date
-  const toDate = (dateInput: string | Date): Date => {
-    return typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-  };
-
-  // Función para formatear fecha UTC a formato español
-  const formatDateUTC = (dateInput: string | Date) => {
+  // Función para formatear fecha para mostrar (sin conversiones UTC)
+  const formatDateForDisplay = (dateInput: string | Date) => {
     try {
-      const date = toDate(dateInput);
-      const day = date.getUTCDate();
-      const month = date.getUTCMonth() + 1;
-      const year = date.getUTCFullYear();
+      // Si es string, convertir a Date
+      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      
+      // Extraer partes de la fecha LOCAL (como se seleccionó)
+      const day = date.getDate(); // Día local
+      const month = date.getMonth() + 1; // Mes local
+      const year = date.getFullYear(); // Año local
+      
       return `${day}/${month}/${year}`;
     } catch (error) {
       console.error("Error formatting date:", error);
-      return typeof dateInput === 'string' ? dateInput.substring(0, 10) : dateInput.toString();
+      return typeof dateInput === 'string' ? dateInput.substring(0, 10) : "Fecha inválida";
     }
   };
 
-  // Función para formatear hora UTC
-  const formatTimeUTC = (dateInput: string | Date) => {
+  // Función para formatear hora para mostrar (sin conversiones UTC)
+  const formatTimeForDisplay = (dateInput: string | Date) => {
     try {
-      const date = toDate(dateInput);
-      let hours = date.getUTCHours();
-      const minutes = date.getUTCMinutes();
+      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      const hours = date.getHours(); // Hora local
+      const minutes = date.getMinutes(); // Minutos local
       const formattedHours = hours < 10 ? `0${hours}` : hours.toString();
       const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
       return `${formattedHours}:${formattedMinutes}`;
@@ -234,17 +219,17 @@ export function CajaView() {
     } else {
       setFiltroEmpleado(currentUserName);
     }
-    
-    // La búsqueda se ejecutará automáticamente por el useEffect
   };
 
   // Manejar cambio en filtro de fecha específica
   const handleFechaBusquedaChange = async (date: Date | undefined) => {
     if (date) {
+      // Usar la fecha exacta como está (sin ajustes)
       setFechaBusqueda(date);
-      setFechaRangoAplicado({ from: undefined, to: undefined }); // Limpiar rango
+      // Limpiar completamente el rango
+      setFechaRangoAplicado({ from: undefined, to: undefined });
+      setFechaRangoTemp({ from: undefined, to: undefined });
       setMostrarCalendario(false);
-      // La búsqueda se ejecutará automáticamente por el useEffect
     }
   };
 
@@ -260,9 +245,9 @@ export function CajaView() {
         from: fechaRangoTemp.from,
         to: fechaRangoTemp.to
       });
-      setFechaBusqueda(undefined); // Limpiar fecha específica
+      // Limpiar completamente la fecha específica
+      setFechaBusqueda(undefined);
       setMostrarRango(false);
-      // La búsqueda se ejecutará automáticamente por el useEffect
     }
   };
 
@@ -278,7 +263,6 @@ export function CajaView() {
   // Manejar cambio en filtro de empleado
   const handleEmpleadoChange = (value: string) => {
     setFiltroEmpleado(value);
-    // La búsqueda se ejecutará automáticamente por el useEffect
   };
 
   if (initialLoading) {
@@ -573,10 +557,10 @@ export function CajaView() {
                         <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-2 md:mb-0">
                           <div className="md:hidden font-semibold text-primary mb-1">Mov. #{movimiento.idtransaccion}</div>
                           <div className="font-medium">
-                            {formatDateUTC(movimiento.fecha)}
+                            {formatDateForDisplay(movimiento.fecha)}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {formatTimeUTC(movimiento.fecha)}
+                            {formatTimeForDisplay(movimiento.fecha)}
                           </div>
                         </TableCell>
                         <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-2 md:mb-0">
