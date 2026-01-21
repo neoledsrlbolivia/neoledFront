@@ -113,6 +113,14 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   }
 }
 
+// Función helper para formatear el nombre del producto
+const formatProductName = (productName: string, color?: string) => {
+  if (!color || color === "" || color === "General") {
+    return productName;
+  }
+  return `${productName} - ${color}`;
+};
+
 export function CotizacionView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Producto[]>([]);
@@ -284,7 +292,7 @@ export function CotizacionView() {
     
     toast({
       title: "Producto agregado",
-      description: `${product.nombre} - ${variante.color_disenio} agregado a la cotización`,
+      description: `${formatProductName(product.nombre, variante.color_disenio)} agregado a la cotización`,
     });
   }, [toast]);
 
@@ -344,7 +352,7 @@ export function CotizacionView() {
   const handleDownloadPDF = async () => {
     const itemsPDF: CotizacionItemPDF[] = cotizacionItems.map(item => ({
       id: item.id.toString(),
-      name: `${item.productoNombre} - ${item.color_disenio}`,
+      name: formatProductName(item.productoNombre, item.color_disenio),
       price: item.precio_venta,
       cantidad: item.cantidad
     }));
@@ -554,7 +562,7 @@ export function CotizacionView() {
         stock: 0,
         stock_minimo: 0,
         estado: 0,
-        color_disenio: detalle.color_disenio || "General",
+        color_disenio: detalle.color_disenio || "",
         color_luz: "",
         watt: "",
         tamano: "",
@@ -562,7 +570,7 @@ export function CotizacionView() {
         cantidad: detalle.cantidad,
         productoNombre: detalle.producto_nombre || "Producto",
         productoDescripcion: "",
-        selectedColor: detalle.color_disenio || "General",
+        selectedColor: detalle.color_disenio || "",
         uniqueId: generateUniqueId() // ID único para cada item
       }));
 
@@ -727,7 +735,7 @@ export function CotizacionView() {
                     <tr key={item.uniqueId}>
                       <td className="border border-gray-300 p-2">
                         <div>
-                          <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
+                          <p className="font-medium">{formatProductName(item.productoNombre, item.color_disenio)}</p>
                           <p className="text-sm text-muted-foreground">
                             {item.productoDescripcion}
                           </p>
@@ -872,7 +880,7 @@ export function CotizacionView() {
                   {cotizacionItems.map((item) => (
                     <div key={item.uniqueId} className="border rounded-lg p-3 space-y-2">
                       <div>
-                        <h4 className="font-semibold text-sm">{item.productoNombre} - {item.color_disenio}</h4>
+                        <h4 className="font-semibold text-sm">{formatProductName(item.productoNombre, item.color_disenio)}</h4>
                         <p className="text-xs text-muted-foreground">{item.productoDescripcion}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -973,7 +981,7 @@ export function CotizacionView() {
                           <TableRow key={item.uniqueId}>
                             <TableCell colSpan={3}>
                               <div>
-                                <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
+                                <p className="font-medium">{formatProductName(item.productoNombre, item.color_disenio)}</p>
                               </div>
                             </TableCell>
                             <TableCell className="text-center">{item.cantidad}</TableCell>
@@ -1269,9 +1277,11 @@ export function CotizacionView() {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap gap-1 mb-1">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {variant.color_disenio}
-                                  </Badge>
+                                  {variant.color_disenio && variant.color_disenio !== "General" && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {variant.color_disenio}
+                                    </Badge>
+                                  )}
                                   {variant.color_luz && (
                                     <Badge variant="outline" className="text-xs">
                                       {variant.color_luz}
@@ -1328,7 +1338,7 @@ export function CotizacionView() {
                                 stock: 0,
                                 stock_minimo: 0,
                                 estado: 0,
-                                color_disenio: "General",
+                                color_disenio: "",
                                 color_luz: "",
                                 watt: "",
                                 tamano: "",
@@ -1388,7 +1398,7 @@ export function CotizacionView() {
                         )}
                         <div className="flex-1 min-w-0">
                           <h5 className="font-medium text-sm break-words whitespace-normal leading-tight">
-                            {item.productoNombre} - {item.color_disenio}
+                            {formatProductName(item.productoNombre, item.color_disenio)}
                           </h5>
                           <p className="text-sm font-medium text-green-600 mt-1">
                             Bs {formatBs(item.precio_venta)} c/u
